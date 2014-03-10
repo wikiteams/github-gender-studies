@@ -1,1 +1,1 @@
-for %i in (pull*.txt) do python DIRTOLANGID\langid.py -n -d < %i > %i.lang
+for %%i in (pull*.txt) do python DIRTOLANGID\langid.py -n -d < %%i > %%i.lang

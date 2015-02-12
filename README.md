@@ -3,7 +3,7 @@ github-gender-studies
 
 #### Introduction
 
-**Estimates gender of GitHub users and put this information into a GitHub Torrent MySQL database**
+**Estimates gender of GitHub users (using their first name, and optionally - their dialogue acts) and puts this information for further analysis into a GitHub Torrent MySQL database**
 
 ##### License
 
@@ -28,7 +28,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-##### Acknowledgments
+##### Acknowledgements
 
 We have an instance of GHTorrent as described on 'Georgios Gousios: The GHTorrent dataset and tool suite. MSR 2013: 233-236'
 

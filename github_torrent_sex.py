@@ -147,7 +147,7 @@ class GeneralGetter(threading.Thread):
         #end
 
     def run(self):
-        scream.cout('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on name ' + str(self.name))
+        scream.cout('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on name ' + str(self.name.encode('utf-8')))
         self.finished = False
         self.get_data(self.name)
 
@@ -159,7 +159,7 @@ class GeneralGetter(threading.Thread):
         self.finished = finished
 
     def cleanup(self):
-        scream.say('Marking thread on ' + str(self.threadId) + "/" + str(self.name) + ' as definitly finished..')
+        scream.say('Marking thread on ' + str(self.threadId) + "/" + str(self.name.encode('utf-8')) + ' as definitly finished..')
         self.finished = True
         scream.say('Terminating/join() thread on ' + str(self.threadId) + ' ...')
         #self.join()
@@ -205,10 +205,10 @@ class GeneralGetter(threading.Thread):
                 if self.submit_retry_counter < 1:
                     raise StopIteration
                 self.error_message = 'Site genderchecker.com seems to have ' +\
-                                'internal problems. or my request is' +\
-                                ' wibbly-wobbly nonsense. HTTPError ' +\
-                                str(e.code) +\
-                                '. awaiting for 60s before retry'
+                                     'internal problems. or my request is' +\
+                                     ' wibbly-wobbly nonsense. HTTPError ' +\
+                                     str(e.code) +\
+                                     '. awaiting for 60s before retry'
                 scream.say(self.error_message)
                 scream.log_error(str(e.code) + ': ' + self.error_message)
                 time.sleep(60)
@@ -217,9 +217,9 @@ class GeneralGetter(threading.Thread):
                 if self.submit_retry_counter < 1:
                     raise StopIteration
                 self.error_message = 'Site genderchecker.com seems to have ' +\
-                                'internal problems. or my request is' +\
-                                ' wibbly-wobbly nonsense. ' +\
-                                'awaiting for 60s before retry'
+                                     'internal problems. or my request is' +\
+                                     ' wibbly-wobbly nonsense. ' +\
+                                     'awaiting for 60s before retry'
                 scream.say(self.error_message)
                 scream.log_error(self.error_message)
                 time.sleep(60)
@@ -246,7 +246,7 @@ class GeneralGetter(threading.Thread):
                 names[first_name]['classification'] = UNISEX
         else:
             scream.log_warning('Something really wrong, on result page there ' +
-                               'was no not-found label neither a proper result')
+                               'was no not-found label neither a proper result', True)
             names[first_name]['classification'] = UNKNOWN
         self.set_finished(True)
 
@@ -289,7 +289,7 @@ if __name__ == "__main__":
         iterator += 1.0
         print "[Progress]: " + str((iterator / record_count) * 100) + "% -----------"
         if len(fullname) < 2:
-            scream.log_warning("--Found too short name field from DB. Skipping..", True)
+            scream.log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
             row = cursor.fetchone()
             continue
         name = fullname.split()[0]
@@ -317,4 +317,18 @@ if __name__ == "__main__":
             while (num_working(threads) > 3):
                 time.sleep(0.2)  # sleeping for 200 ms - there are already 3 active threads..
         row = cursor.fetchone()
+
+    cursor.close()
+    print "Finished getting gender data, moving to database update..."
+
+    for key in names.keys():
+        collection = names[key]
+        gender = collection['classification']
+        for fullname in names[key]['persons']:
+            cursor = first_conn.cursor()
+            update_query = r'UPDATE selected_developers_merged SET gender = %s where name = "%s"' % (gender, fullname)
+            print update_query
+            cursor.execute(update_query)
+            cursor.close()
+
     first_conn.close()

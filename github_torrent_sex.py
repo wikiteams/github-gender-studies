@@ -162,7 +162,7 @@ class GeneralGetter(threading.Thread):
         scream.say('Marking thread on ' + str(self.threadId) + "/" + str(self.name.encode('utf-8')) + ' as definitly finished..')
         self.finished = True
         scream.say('Terminating/join() thread on ' + str(self.threadId) + ' ...')
-        #self.join()
+        self.my_browser.close()
 
     def get_data(self, first_name):
         global names
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     # populate list of users to memory
     cursor = first_conn.cursor()
     print 'Querying all names from the observations set.. This can take around 25-30 sec.'
-    cursor.execute(r'select distinct name from selected_developers_merged where name is not NULL')
+    cursor.execute(r'select distinct name from selected_developers_merged where (name is not NULL) and (gender not in (1, 2, 3))')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()
@@ -326,7 +326,8 @@ if __name__ == "__main__":
         gender = collection['classification']
         for fullname in names[key]['persons']:
             cursor = first_conn.cursor()
-            update_query = r'UPDATE selected_developers_merged SET gender = %s where name = "%s"' % (gender, fullname)
+            update_query = r'UPDATE selected_developers_merged SET gender = {0} where name = "{1}"'.format(gender,
+                                                                                                           fullname.encode('utf-8').replace('"', '\\"'))
             print update_query
             cursor.execute(update_query)
             cursor.close()

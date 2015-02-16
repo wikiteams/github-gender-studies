@@ -8,21 +8,13 @@ into our GitHub Torrent MySQL mirror
 @update 12.02.2015
 '''
 
-import csv
 import scream
-import codecs
-import cStringIO
-import os
 import sys
-import urllib
 import urllib2
-import simplejson
-import hashlib
 import mechanize
 import time
 import argparse
 from bs4 import BeautifulSoup
-import re
 import unicodedata
 import threading
 # import ElementTree based on the python version
@@ -277,7 +269,8 @@ if __name__ == "__main__":
     # populate list of users to memory
     cursor = first_conn.cursor()
     print 'Querying all names from the observations set.. This can take around 25-30 sec.'
-    cursor.execute(r'select distinct name from selected_developers_merged where (name is not NULL) and (gender not in (1, 2, 3))')
+    #cursor.execute(r'select distinct name from selected_developers_merged where (name is not NULL) and ( (gender not in (1, 2, 3) or (gender is NULL) ) )')
+    cursor.execute(r'select distinct name from selected_developers_merged where ((name is not NULL) and (gender is NULL) )')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()

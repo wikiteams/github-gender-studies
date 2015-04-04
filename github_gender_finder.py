@@ -2,10 +2,10 @@
 '''
 Puts information on gender estimation of GitHub users
 into our GitHub Torrent MySQL mirror
-@version 1.3
+@version 1.4 "Angry Dairyman"
 @author Oskar Jarczyk
 @since 1.0
-@update 12.02.2015
+@update 4.04.2015
 '''
 
 import scream
@@ -27,7 +27,7 @@ try:
 except ImportError:
     import _mysql as MSQL
 
-version_name = 'version 1.3 codename: Dżęder'
+version_name = 'version 1.4 codename: Angry Dairyman'
 
 MALE = 1
 FEMALE = 2
@@ -257,48 +257,61 @@ if __name__ == "__main__":
     first_conn = MSQL.connect(host="10.4.4.3", port=3306, user=open('mysqlu.dat', 'r').read(),
                               passwd=open('mysqlp.dat', 'r').read(), db="github", connect_timeout=50000000,
                               charset='utf8', init_command='SET NAMES UTF8', use_unicode=True)
-    print 'Testing mySql connection...'
+    print 'Testing MySql connection...'
     print 'Pinging database: ' + (str(first_conn.ping(True)) if first_conn.ping(True) is not None else 'NaN')
     cursor = first_conn.cursor()
     cursor.execute(r'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = "%s"' % 'github')
     rows = cursor.fetchall()
     print 'There are: ' + str(rows[0][0]) + ' table objects in the local GHtorrent copy'
+    cursor.execute(r'SELECT table_name FROM information_schema.tables WHERE table_schema = "%s"' % 'github')
+    rows = cursor.fetchall()
+    if (u'users', ) and (u'projects', ) in rows:
+        print 'All neccesary tables are there.'
+    else:
+        print 'Your database does not fit a typical description of a GitHub Torrent copy..'
+        sys.exit(0)
     cursor.close()
     scream.say("Database seems to be working. Move on to getting list of users.")
 
     # populate list of users to memory
     cursor = first_conn.cursor()
     print 'Querying all names from the observations set.. This can take around 25-30 sec.'
-    #cursor.execute(r'select distinct name from selected_developers_merged where (name is not NULL) and ( (gender not in (1, 2, 3) or (gender is NULL) ) )')
-    cursor.execute(r'select distinct name from selected_developers_merged where ((name is not NULL) and (gender is NULL) )')
+    sample_tb_name = raw_input("Please enter table/view name (of chosen data sample): ")
+    cursor.execute(r'select distinct name from ' + str(sample_tb_name) + ' where ((name is not NULL) and (gender is NULL) )')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()
     iterator = float(0)
+
+    min_name_length = 2
+    print 'We hypothetize that minimum name length are ' \
+        + str(min_name_length) + ' characters, like Ho, Sy, Lu'
+    # http://www.answers.com/Q/What_is_the_shortest_name_in_the_world
 
     while row is not None:
         fullname = unicode(row[0])
         scream.log("  Fullname is: " + str(fullname.encode('unicode_escape')))
         iterator += 1.0
         print "[Progress]: " + str((iterator / record_count) * 100) + "% -----------"
-        if len(fullname) < 2:
+        if len(fullname) < min_name_length:
             scream.log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
             row = cursor.fetchone()
             continue
         name = fullname.split()[0]
-        # name = re.split('\s|,|.', fullname)[0]
-        scream.log("  Name is: " + str(name.encode('unicode_escape')))
+        # I find it quite uncommon to seperate name from surname with something else than a space
+        # it does occur, but it's not in my interest to detect such human-generated dirty data at the moment
+        scream.log("\tName is: " + str(name.encode('unicode_escape')))
         if name in names:
             if fullname in names[name]['persons']:
-                scream.say("  Such fullname already classified! Rare, but can happen. Move on.")
+                scream.say("\tSuch fullname already classified! Rare, but can happen. Move on.")
             else:
-                scream.say("  Adding fullname to ALREADY classified name. Move on")
+                scream.say("\tAdding fullname to already classified name. Move on")
                 names[name]['persons'].append(fullname)
         else:
-            scream.say("  New name. Lets start classification.")
+            scream.say("\tNew name. Lets start classification.")
             names[name] = {'persons': list(), 'classification': None}
             names[name]['persons'].append(fullname)
-            scream.say("  Start the worker on name: " + str(name.encode('utf-8')) + " as deriven from: " + str(fullname.encode('utf-8')))
+            scream.say("\tStart the worker on name: " + str(name.encode('utf-8')) + " as deriven from: " + str(fullname.encode('utf-8')))
             # start the worker
             gg = GeneralGetter(int(iterator), name)
             scream.say('Creating instance of GeneralGetter complete')

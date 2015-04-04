@@ -1,4 +1,4 @@
-github-gender-studies
+GitHub-user gender recognition (v1.4)
 =====================
 
 #### Introduction

@@ -26,7 +26,7 @@ except ImportError:
 
 version_name = 'version 1.4 codename: Angry Dairyman'
 
-record_count = 63983
+record_count = None
 IP_ADDRESS = "10.4.4.3"  # Be sure to update this to your needs
 
 
@@ -108,20 +108,26 @@ if __name__ == "__main__":
     else:
         print 'Your database does not fit a typical description of a GitHub Torrent copy..'
         sys.exit(0)
+    
+    sample_tb_name = raw_input("Please enter table/view name (of chosen data sample): ")
+    cursor.execute(r'select count(distinct name) from ' + str(sample_tb_name) +' where ((name is not NULL) and (gender is NULL))')
+    rows = cursor.fetchall()
+    record_count = rows[0][0]
     cursor.close()
+
     scream.say("Database seems to be working. Move on to getting list of users.")
 
     # populate list of users to memory
     cursor = first_conn.cursor()
+    is_locked_tb = raw_input("Should I update [users] table instead of [" + str(sample_tb_name) + "]? [y/n]: ")
+    is_locked_tb = True if is_locked_tb in ['yes', 'y'] else False
     print 'Querying all names from the observations set.. This can take around 25-30 sec.'
-    sample_tb_name = raw_input("Please enter table/view name (of chosen data sample): ")
-    is_locked_tb = raw_input("Should I update [users] table instead of [" + str(sample_tb_name) + "? [yes/no]: ")
-    is_locked_tb = True if is_locked_tb == 'yes' else False
+    
     cursor.execute(r'select distinct name from ' + str(sample_tb_name) + ' where ((name is not NULL) and (gender is NULL) )')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()
-    iterator = float(0)
+    iterator = 1.0
 
     min_name_length = 2
     print 'We hypothetize that minimum name length are ' \
@@ -130,9 +136,9 @@ if __name__ == "__main__":
 
     while row is not None:
         fullname = unicode(row[0])
-        scream.log("  Fullname is: " + str(fullname.encode('unicode_escape')))
-        iterator += 1.0
-        print "[Progress]: " + str((iterator / record_count) * 100) + "% -----------"
+        scream.log("\tFullname is: " + str(fullname.encode('unicode_escape')))
+        iterator += 1
+        print "[Progress]: " + str((iterator / record_count) * 100) + "% ----------- [names] size: " + str(len(names))
         if len(fullname) < min_name_length:
             scream.log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
             row = cursor.fetchone()

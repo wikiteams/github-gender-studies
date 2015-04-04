@@ -32,4 +32,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 We have an instance of GHTorrent as described on 'Georgios Gousios: The GHTorrent dataset and tool suite. MSR 2013: 233-236'
 
-We use portal http://genderchecker.com/ to estimate GitHub user gender, depending on his name.
+We use portal [genderchecker.com](http://genderchecker.com/) to estimate GitHub user gender, depending on his name.
+
+Moreover, we use a 3rd party service available at [codejungle.org](http://www.codejungle.org/site/api.html#gender) to verify with smaller but more balanced gender-classified names.
+
+If there is enough time, OpenCV with [FisherFaces algorithm](https://github.com/bytefish/facerec) will be used.

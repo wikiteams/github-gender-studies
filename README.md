@@ -41,3 +41,7 @@ If there is enough time, OpenCV with [FisherFaces algorithm](https://github.com/
 ##### Requirements
 
 For required libraries please check *requirements.txt*. Program does not guarantee compability with your local copy of GitHub Torrent MySQL databse, but feel free to contact me in case of any questions or problems.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/wikiteams/github-gender-studies/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+

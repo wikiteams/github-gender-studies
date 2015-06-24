@@ -34,5 +34,8 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# Other
 /mysqlp.dat
 /mysqlu.dat
+*.log

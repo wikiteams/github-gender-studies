@@ -108,9 +108,9 @@ if __name__ == "__main__":
     else:
         print 'Your database does not fit a typical description of a GitHub Torrent copy..'
         sys.exit(0)
-    
+
     sample_tb_name = raw_input("Please enter table/view name (of chosen data sample): ")
-    cursor.execute(r'select count(distinct name) from ' + str(sample_tb_name) +' where ((name is not NULL) and (gender is NULL))')
+    cursor.execute(r'select count(distinct name) from ' + str(sample_tb_name) + ' where ((name is not NULL) and (gender is NULL))')
     rows = cursor.fetchall()
     record_count = rows[0][0]
     cursor.close()
@@ -122,8 +122,8 @@ if __name__ == "__main__":
     is_locked_tb = raw_input("Should I update [users] table instead of [" + str(sample_tb_name) + "]? [y/n]: ")
     is_locked_tb = True if is_locked_tb in ['yes', 'y'] else False
     print 'Querying all names from the observations set.. This can take around 25-30 sec.'
-    
-    cursor.execute(r'select distinct name from ' + str(sample_tb_name) + ' where ((name is not NULL) and (gender is NULL) )')
+
+    cursor.execute(r'select distinct name from ' + str(sample_tb_name) + ' where ((name is not NULL) and (gender is NULL))')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         fullname = unicode(row[0])
         scream.log("\tFullname is: " + str(fullname.encode('unicode_escape')))
         iterator += 1
-        print "[Progress]: " + str((iterator / record_count) * 100) + "% ----------- [names] size: " + str(len(names))
+        print "[Progress]: " + str((iterator / record_count) * 100) + "% ----------- "  # [names] size: " + str(len(names))
         if len(fullname) < min_name_length:
             scream.log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
             row = cursor.fetchone()

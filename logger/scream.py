@@ -6,7 +6,7 @@ import portalocker
 
 DISABLE__STD = False
 
-logging.config.fileConfig('logging.conf')
+logging.config.fileConfig('logger/logging.conf')
 logger = logging.getLogger(__name__)
 
 intelliTag_verbose = False

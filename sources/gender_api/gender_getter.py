@@ -1,12 +1,12 @@
 # coding=UTF-8
-import scream
+from logger import scream
 import urllib3
 import random
 import time
 import json
 import threading
 from unique import NamesCollection
-# import ElementTree based on the python version
+import pkg_resources
 try:
     import elementtree.ElementTree as ET
 except ImportError:
@@ -21,7 +21,7 @@ FEMALE = 2
 
 def get_random_auth():
     secrets = []
-    with open('credentials.dat', 'r') as passfile:
+    with open(pkg_resources.resource_filename('sources.gender_api', 'credentials.dat'), 'r') as passfile:
         for line in passfile:
             secrets.append(line)
     return random.choice(secrets)

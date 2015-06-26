@@ -35,6 +35,10 @@ Holds recognition modules divided by the type of Gender-API.
 
 Can be either gender-api.com or genderchecker.com
 
-#### file GenderAnalyzer.py
+#### directory "logger"
+
+A simple logging / output utility
+
+#### file luncher.py
 
 Interactive script for executing with proper settings and choosing the gender api.

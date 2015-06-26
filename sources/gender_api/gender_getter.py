@@ -46,7 +46,7 @@ class GeneralGetter(threading.Thread):
         self.batch = batch
 
     def run(self):
-        scream.cout('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on batch of ' + str(len(self.batch)) + ' names')
+        scream.definitely_say('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on batch of ' + str(len(self.batch)) + ' names')
         self.finished = False
         self.get_data(self.batch)
 
@@ -70,14 +70,15 @@ class GeneralGetter(threading.Thread):
 
         self.http = urllib3.PoolManager()
 
-        scream.say('#Ask now the Internet for name gender')
+        scream.say('#Ask now the gender-api for names gender')
         self.oauth = get_random_auth()
 
         while True:
             try:
-                self.r = self.http.request('GET',
-                                           r'https://gender-api.com/get?name={1}&key={2}'.format(
-                                           str(StripNonAlpha(name) + ';' for name in all_names).rstrip(';'), self.oauth))
+                self.adress = ur'https://gender-api.com/get?name={unpack_names}&key={oauth}'.format(
+                              unpack_names=';'.join([StripNonAlpha(name) for name in all_names]),
+                              oauth=self.oauth)
+                self.r = self.http.request('GET', self.adress.encode('utf-8'))
                 if self.r.data is None:
                     scream.say("No answer in http response body!")
                     time.sleep(60)
@@ -85,31 +86,41 @@ class GeneralGetter(threading.Thread):
                 error_messages = ['errno', '30', 'errmsg', 'limit reached']
                 if all(x in self.r.data for x in error_messages):
                     scream.say("Limit reached! Retry after a minute.")
+                    scream.say(self.adress)
+                    scream.say(self.r.data)
                     time.sleep(60)
                     continue
                 break
-            except urllib3.URLError:
-                scream.ssay('Site gender-api.com seems to be down' +
-                            '. awaiting for 60s before retry')
+            except urllib3.exceptions.ConnectionError:
+                scream.definitely_say('Site gender-api.com seems to be down' +
+                                      '. awaiting for 60s before retry')
                 time.sleep(60)
             except Exception as exc:
-                scream.ssay('Some other error: ')
-                scream.ssay(str(exc))
+                scream.definitely_say('Some other error: ')
+                scream.definitely_say(str(exc))
                 time.sleep(60)
 
-        scream.say('Response read. Parsing json.')
+        #scream.say('Response read. Parsing json.')
+        #scream.say('--------------------------')
+        #scream.say(str(self.r.data))
+        #scream.say('--------------------------')
 
-        result_json = json.loads(self.r.data)
+        self.result_json = json.loads(self.r.data)
 
-        for idx, val in enumerate(result_json):
+        for idx, val in enumerate(self.result_json['result']):
             self.found_name = val['name']
-            self.found_gender = val['name']
+            self.found_gender = val['gender']
             self.found_accuracy = val['accuracy']
 
             if self.found_gender.lower() == 'female':
                 names[all_names[idx]]['classification'] = FEMALE
             else:
                 names[all_names[idx]]['classification'] = MALE
+
+            #scream.say('Response read. Parsing json.')
+            #scream.say('+++++++++++++++++++++++++++++++++++')
+            #scream.say(str(all_names[idx]) + ' ' + str(val['name']) + ' ' + str(val['gender']))
+            #scream.say('+++++++++++++++++++++++++++++++++++')
 
             names[all_names[idx]]['accuracy'] = self.found_accuracy
 

@@ -10,20 +10,21 @@ logging.config.fileConfig('logger/logging.conf')
 logger = logging.getLogger(__name__)
 
 intelliTag_verbose = False
+disable_all = False
 
 
 def log(s):
-    if intelliTag_verbose:
+    if intelliTag_verbose and not disable_all:
         logger.info(str(s))
 
 
 def say(s):
-    if intelliTag_verbose:
+    if intelliTag_verbose and not disable_all:
         print str(s)
 
 
-def cout(s):
-    if intelliTag_verbose:
+def definitely_say(s):
+    if not disable_all:
         print str(s)
 
 
@@ -36,7 +37,7 @@ def progress_bar(current, left):
         portalocker.unlock(lockfile)
 
 
-def ssay(s, current=None, left=None):
+def say_progress(s, current=None, left=None):
     if type(current) is str:
         current = int(current)
     if type(left) is str:
@@ -44,7 +45,7 @@ def ssay(s, current=None, left=None):
 
     if current is not None:
         progress_bar(current, left)
-    if intelliTag_verbose:
+    if intelliTag_verbose and not disable_all:
         print colored(str(s), 'green')
         logger.info(str(s))
 

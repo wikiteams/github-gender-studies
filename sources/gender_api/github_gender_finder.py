@@ -8,7 +8,7 @@ into our GitHub Torrent MySQL mirror
 @update 25.06.2015
 '''
 
-from logger import scream
+from logger.scream import say, definitely_say, log, log_warning, log_debug
 import sys
 import gender_stacker as GetterJobs
 from unique import NamesCollection
@@ -107,7 +107,7 @@ def execute_check():
                               db="github", connect_timeout=5 * 10**7,
                               charset='utf8', init_command='SET NAMES UTF8',
                               use_unicode=True)
-    print 'Testing MySql connection...'
+    definitely_say('Testing MySql connection...')
     cursor = test_database(first_conn)
     check_database_consistency(cursor)
 
@@ -117,13 +117,13 @@ def execute_check():
     record_count = rows[0][0]
     cursor.close()
 
-    scream.say("Database seems to be working. Move on to getting list of users.")
+    definitely_say("Database seems to be working. Move on to getting list of users.")
 
     # populate list of users to memory
     cursor = first_conn.cursor()
     is_locked_tb = raw_input("Should I update [users_ext] table instead of [" + str(sample_tb_name) + "]? [y/n]: ")
     is_locked_tb = True if is_locked_tb in ['yes', 'y'] else False
-    print 'Querying all names from the observations set.. This can take around 25-30 sec.'
+    definitely_say('Querying all names from the observations set.. This can take around 25-30 sec.')
 
     cursor.execute(r'select distinct name from ' + str(sample_tb_name) + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?")')
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
@@ -132,50 +132,50 @@ def execute_check():
     iterator = 1.0
 
     min_name_length = 2
-    print 'We hypothetize that minimum name length are ' \
-        + str(min_name_length) + ' characters, like Ho, Sy, Lu'
+    say('We hypothetize that minimum name length are '
+        + str(min_name_length) + ' characters, like Ho, Sy, Lu')
     # http://www.answers.com/Q/What_is_the_shortest_name_in_the_world
 
     while row is not None:
         fullname = unicode(row[0])
-        scream.log("\tFullname is: " + str(fullname.encode('unicode_escape')))
+        log("\tFullname is: " + str(fullname.encode('unicode_escape')))
         iterator += 1
-        print "[Progress]: " + str((iterator / record_count) * 100) + "% ----------- "
+        say("[Progress]: " + str((iterator / record_count) * 100) + "% ----------- ")
         if len(fullname) < min_name_length:
-            scream.log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
+            log_warning("--Found too short name field (" + str(fullname.encode('utf-8')) + ") from DB. Skipping..", True)
             row = cursor.fetchone()
             continue
         name = fullname.split()[0]
         # I find it quite uncommon to seperate name from surname with something else than a space
         # In some cultures first name comes after surname, but very often for the sake of westerners,
         # this is reversed-back (source: https://en.wikipedia.org/wiki/Surname#Order_of_names)
-        scream.log("\tName is: " + str(name.encode('unicode_escape')))
+        log("\tName is: " + str(name.encode('unicode_escape')))
         if name in names:
             if fullname in names[name]['persons']:
-                scream.say("\tSuch fullname already classified! Rare, but can happen. Move on.")
+                say("\tSuch fullname already classified! Rare, but can happen. Move on.")
             else:
-                scream.say("\tAdding fullname to already classified name. Move on")
+                say("\tAdding a new fullname to already classified name. Move on")
                 names[name]['persons'].append(fullname)
         else:
-            scream.say("\tNew name. Lets start classification.")
+            say("\tNew name. Lets start classification.")
             names[name] = {'persons': list(), 'classification': None}
             names[name]['persons'].append(fullname)
-            scream.say("\t[Batch load] added new name: " + str(name.encode('utf-8')) + " as deriven from: " + str(fullname.encode('utf-8')))
+            say("\t[Batch load] added new name: " + str(name.encode('utf-8')) + " as deriven from: " + str(fullname.encode('utf-8')))
             # start the worker when stack is full
             jobLoad = GetterJobs.stackWith(int(iterator), name)
             if jobLoad is not None:
-                scream.say('Creating instance of [GeneralGetter] complete')
-                scream.say('Appending thread to collection of threads')
+                say('Creating instance of [GeneralGetter] complete')
+                say('Appending thread to collection of threads')
                 threads.append(jobLoad)
-                scream.say('Append complete, threads[] now have size: ' + str(len(threads)))
-                scream.log_debug('Starting thread ' + str(int(iterator)-1) + '....', True)
+                say('Append complete, threads[] now have size: ' + str(len(threads)))
+                log_debug('Starting thread ' + str(int(iterator)-1) + '....', True)
                 jobLoad.start()
             while (num_working(threads) > 4):
                 time.sleep(0.2)  # sleeping for 200 ms - there are already 4 active threads..
         row = cursor.fetchone()
 
     cursor.close()
-    print "Finished getting gender data, moving to database update..."
+    definitely_say("Finished getting gender data, moving to database update...")
 
     for key in names.keys():
         collection = names[key]
@@ -186,7 +186,7 @@ def execute_check():
                            fullname=fullname.encode('utf-8').replace('"', '\\"'),
                            table='users' if is_locked_tb else sample_tb_name,
                            accuracy=collection['accuracy'])
-            print update_query
+            say(update_query)
             cursor.execute(update_query)
             cursor.close()
 

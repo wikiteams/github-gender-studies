@@ -1,5 +1,6 @@
 import pkg_resources
 import sys
+import warnings
 from logger.scream import say
 try:
     import MySQLdb as MSQL
@@ -8,6 +9,20 @@ except ImportError:
 
 
 IP_ADDRESS = "10.4.4.3"  # Be sure to update this to your needs
+
+
+def deprecated(func):
+    '''This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used.'''
+    def new_func(*args, **kwargs):
+        warnings.warn("Call to deprecated function {}.".format(func.__name__),
+                      category=DeprecationWarning)
+        return func(*args, **kwargs)
+    new_func.__name__ = func.__name__
+    new_func.__doc__ = func.__doc__
+    new_func.__dict__.update(func.__dict__)
+    return new_func
 
 
 def init():
@@ -46,7 +61,8 @@ def get_record_count(cursor, sample_tb_name, limit):
     return rows[0][0]
 
 
-def update_database(connection, names, is_locked_tb, sample_tb_name):
+@deprecated
+def batch_update_database(connection, names, is_locked_tb, sample_tb_name):
     cursor = connection.cursor()
     for key in names.keys():
         collection = names[key]
@@ -58,4 +74,15 @@ def update_database(connection, names, is_locked_tb, sample_tb_name):
                            accuracy=collection['accuracy'])
             say(update_query)
             cursor.execute(update_query)
+    cursor.close()
+
+
+def update_single_record(connection, classification, is_locked_tb, sample_tb_name):
+    cursor = connection.cursor()
+    fullname, accuracy, gender = classification
+    update_query = r'UPDATE {table} SET gender = {gender} , accuracy = {accuracy} WHERE id IN (SELECT id FROM users WHERE name = "{fullname}")'.format(
+                   gender=gender, fullname=fullname.encode('utf-8').replace('"', '\\"'), table='users_ext' if is_locked_tb else sample_tb_name,
+                   accuracy=accuracy)
+    say(update_query)
+    cursor.execute(update_query)
     cursor.close()

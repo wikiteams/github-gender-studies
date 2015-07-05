@@ -128,10 +128,10 @@ def execute_check():
                 names[name]['persons'].append(fullname)
         else:
             say("\tNew name. Lets start classification.")
-            names[name] = {'persons': list(), 'classification': None}
+            names[name] = {'persons': list(), 'classification': None, 'accuracy': None}
             names[name]['persons'].append(fullname)
             say("\t[Batch load] added new name: " + str(name.encode('utf-8')) + " as deriven from: " + str(fullname.encode('utf-8')))
-            job = GeneralGetter(int(iterator), (name, surname, country_code))
+            job = GeneralGetter(int(iterator), (name, surname, country_code), fullname)
             say('Creating instance of [GeneralGetter] complete')
             say('Appending thread to collection of threads')
             threads.append(job)

@@ -1,5 +1,5 @@
 # coding=UTF-8
-from logger import scream
+from logger.scream import say, definitely_say, log_warning
 import urllib3
 import time
 import json
@@ -25,9 +25,10 @@ class GeneralGetter(threading.Thread):
 
     finished = False
     batch = None
+    fullname = None
 
-    def __init__(self, threadId, batch):
-        scream.say('Initiating GeneralGetter, running __init__ procedure.')
+    def __init__(self, threadId, batch, fullname):
+        say('Initiating GeneralGetter, running __init__ procedure.')
         self.threadId = threadId
         threading.Thread.__init__(self)
 
@@ -36,84 +37,80 @@ class GeneralGetter(threading.Thread):
         self.daemon = True
         self.finished = False
         self.batch = batch
+        self.fullname = fullname
 
     def run(self):
-        scream.definitely_say('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on batch of ' + str(len(self.batch)) + ' names')
+        definitely_say('GeneralGetter thread(' + str(self.threadId) + ')' + 'starts working on batch of ' + str(len(self.batch)) + ' informations')
         self.finished = False
-        self.get_data(self.batch)
+        self.get_data(self.batch, self.fullname)
 
     def is_finished(self):
         return self.finished if self.finished is not None else False
 
     def set_finished(self, finished):
-        scream.say('Marking the thread ' + str(self.threadId) + ' as finished..')
+        say('Marking the thread ' + str(self.threadId) + ' as finished..')
         self.finished = finished
 
     def cleanup(self):
-        scream.say('Marking thread on ' + str(self.threadId) + ' as definitly finished..')
+        say('Marking thread on ' + str(self.threadId) + ' as definitly finished..')
         self.finished = True
-        scream.say('Terminating/join() thread on ' + str(self.threadId) + ' ...')
-        self.my_browser.close()
+        say('Terminating/join() thread on ' + str(self.threadId) + ' ...')
+        # self.my_browser.close()
 
-    def get_data(self, all_names):
+    def get_data(self, person_tuple, fullname):
         global names
         global MALE
         global FEMALE
 
         self.http = urllib3.PoolManager()
 
-        scream.say('#Ask now the gender-api for names gender')
-        self.oauth = get_random_auth()
+        say('#Ask now the namsor gender API for classification')
 
+        name, surname, country_code = person_tuple
+
+        network_attempts = 0
         while True:
             try:
-                self.adress = ur'https://gender-api.com/get?name={unpack_names}&key={oauth}'.format(
-                              unpack_names=';'.join([StripNonAlpha(name) for name in all_names]),
-                              oauth=self.oauth)
+                self.adress = ur'http://api.namsor.com/onomastics/api/json/gendre/{name}/{surname}/{country_code}'.format(
+                              name=name, surname=surname, country_code=country_code)
                 self.r = self.http.request('GET', self.adress.encode('utf-8'))
+                network_attempts += 1
                 if self.r.data is None:
-                    scream.say("No answer in http response body!")
+                    say("No answer in HTTP response body!")
                     time.sleep(60)
                     continue
-                error_messages = ['errno', '30', 'errmsg', 'limit reached']
+                error_messages = ['Apache Tomcat', '7.0.52', 'Error report', 'Status report']
                 if all(x in self.r.data for x in error_messages):
-                    scream.say("Limit reached! Retry after a minute.")
-                    scream.say(self.adress)
-                    scream.say(self.r.data)
+                    say("HTTP error returned by WWW server. Try again, max 10 times.")
+                    say(self.adress)
+                    say(self.r.data)
                     time.sleep(60)
-                    continue
+                    if network_attempts < 10:
+                        continue
                 break
             except urllib3.exceptions.ConnectionError:
-                scream.definitely_say('Site gender-api.com seems to be down' +
-                                      '. awaiting for 60s before retry')
+                definitely_say('Site api.namsor.com seems to be down' +
+                               '. awaiting for 60s before retry')
                 time.sleep(60)
             except Exception as exc:
-                scream.definitely_say('Some other error: ')
-                scream.definitely_say(str(exc))
+                definitely_say('Some other error: ')
+                definitely_say(str(exc))
                 time.sleep(60)
 
-        #scream.say('Response read. Parsing json.')
-        #scream.say('--------------------------')
-        #scream.say(str(self.r.data))
-        #scream.say('--------------------------')
+        try:
+            self.result_json = json.loads(self.r.data)
+        except ValueError:
+            self.set_finished(True)
+            return
 
-        self.result_json = json.loads(self.r.data)
+        self.found_gender = self.result_json["gender"]
+        self.found_accuracy = self.result_json["accuracy"]
 
-        for idx, val in enumerate(self.result_json['result']):
-            self.found_name = val['name']
-            self.found_gender = val['gender']
-            self.found_accuracy = val['accuracy']
+        if self.found_gender.lower() == 'female':
+            names[name]['classification'] = FEMALE
+        else:
+            names[name]['classification'] = MALE
 
-            if self.found_gender.lower() == 'female':
-                names[all_names[idx]]['classification'] = FEMALE
-            else:
-                names[all_names[idx]]['classification'] = MALE
-
-            #scream.say('Response read. Parsing json.')
-            #scream.say('+++++++++++++++++++++++++++++++++++')
-            #scream.say(str(all_names[idx]) + ' ' + str(val['name']) + ' ' + str(val['gender']))
-            #scream.say('+++++++++++++++++++++++++++++++++++')
-
-            names[all_names[idx]]['accuracy'] = self.found_accuracy
+        names[name]['accuracy'] = self.found_accuracy
 
         self.set_finished(True)

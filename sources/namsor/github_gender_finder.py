@@ -96,7 +96,7 @@ def execute_check(limit):
     definitely_say('Querying all names from the observations set.. This can take around 25-30 sec in LAN.')
 
     cursor.execute(r'select name, location from ' + str(sample_tb_name)
-                   + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
+                   + ' where (type = "USR") and (fake <> 1) and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()

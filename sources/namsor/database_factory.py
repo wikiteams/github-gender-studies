@@ -2,6 +2,7 @@ import pkg_resources
 import sys
 import warnings
 import threading
+import time
 from logger.scream import say
 try:
     import MySQLdb as MSQL
@@ -62,7 +63,7 @@ def check_database_consistency(cursor):
 
 def get_record_count(cursor, sample_tb_name, limit):
     cursor.execute(r'select count(*) from ' + str(sample_tb_name)
-                   + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
+                   + ' where (type = "USR") and (fake <> 1) and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
     rows = cursor.fetchall()
     return rows[0][0]
 
@@ -93,12 +94,19 @@ def update_record_threaded(connection, classification, is_locked_tb=True, sample
 
 
 def update_single_record(connection, classification, is_locked_tb, sample_tb_name):
-    cursor = connection.cursor()
-    fullname, accuracy, gender = classification
-    update_query = r'UPDATE {table} t1 JOIN {sample_tb_name} t2 ON t1.id = t2.id SET t1.gender = {gender} , t1.accuracy = {accuracy} WHERE t2.name = "{fullname}"'.format(
-                   gender=gender, fullname=fullname.encode('utf-8').replace('"', '\\"'), table='users_ext' if is_locked_tb else sample_tb_name,
-                   accuracy=accuracy, sample_tb_name=sample_tb_name)
-    say(update_query)
-    cursor.execute(update_query)
-    cursor.close()
+    success = False
+    while (not success):
+        try:
+            cursor = connection.cursor()
+            fullname, accuracy, gender = classification
+            update_query = r'UPDATE {table} t1 JOIN {sample_tb_name} t2 ON t1.id = t2.id SET t1.gender = {gender} , t1.accuracy = {accuracy} WHERE t2.name = "{fullname}"'.format(
+                           gender=gender, fullname=fullname.encode('utf-8').replace('"', '\\"'), table='users_ext' if is_locked_tb else sample_tb_name,
+                           accuracy=accuracy, sample_tb_name=sample_tb_name)
+            say(update_query)
+            cursor.execute(update_query)
+            cursor.close()
+            success = True
+        except:
+            say("Lost connection to MySQL? Update query failed")
+            time.sleep(5)
     return

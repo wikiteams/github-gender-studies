@@ -31,5 +31,7 @@ if __name__ == "__main__":
         elif (str(var) == '3'):
             from sources.namsor import github_gender_finder
             github_gender_finder.execute_check(True if args.small_test_chunk else False)
+        else:
+            print "Wrong value inserted. Please chooce a number between 1 and 3 (inclusive)"
     else:
         raise NotImplementedError  # "Lunch interactive mode instead"

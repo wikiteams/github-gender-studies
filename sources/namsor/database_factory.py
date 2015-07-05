@@ -1,6 +1,7 @@
 import pkg_resources
 import sys
 import warnings
+import threading
 from logger.scream import say
 try:
     import MySQLdb as MSQL
@@ -9,6 +10,9 @@ except ImportError:
 
 
 IP_ADDRESS = "10.4.4.3"  # Be sure to update this to your needs
+threads = []
+
+connection = None
 
 
 def deprecated(func):
@@ -26,11 +30,13 @@ def deprecated(func):
 
 
 def init():
-    return MSQL.connect(host=IP_ADDRESS, port=3306, user=pkg_resources.resource_string('sources.gender_api', 'mysqlu.dat'),
-                        passwd=pkg_resources.resource_string('sources.gender_api', 'mysqlp.dat'),
-                        db="github", connect_timeout=5 * 10**7,
-                        charset='utf8', init_command='SET NAMES UTF8',
-                        use_unicode=True)
+    global connection
+    connection = MSQL.connect(host=IP_ADDRESS, port=3306, user=pkg_resources.resource_string('sources.gender_api', 'mysqlu.dat'),
+                              passwd=pkg_resources.resource_string('sources.gender_api', 'mysqlp.dat'),
+                              db="github", connect_timeout=5 * 10**7,
+                              charset='utf8', init_command='SET NAMES UTF8',
+                              use_unicode=True)
+    return connection
 
 
 def test_database(connection):
@@ -77,12 +83,22 @@ def batch_update_database(connection, names, is_locked_tb, sample_tb_name):
     cursor.close()
 
 
+def update_record_threaded(connection, classification, is_locked_tb=True, sample_tb_name="users"):
+    if (classification[2] == 2):
+        thread = threading.Thread(target=update_single_record, args=(connection, classification, is_locked_tb, sample_tb_name))
+        threads.append(thread)
+        thread.start()
+    else:
+        pass
+
+
 def update_single_record(connection, classification, is_locked_tb, sample_tb_name):
     cursor = connection.cursor()
     fullname, accuracy, gender = classification
-    update_query = r'UPDATE {table} SET gender = {gender} , accuracy = {accuracy} WHERE id IN (SELECT id FROM users WHERE name = "{fullname}")'.format(
+    update_query = r'UPDATE {table} t1 JOIN {sample_tb_name} t2 ON t1.id = t2.id SET t1.gender = {gender} , t1.accuracy = {accuracy} WHERE t2.name = "{fullname}"'.format(
                    gender=gender, fullname=fullname.encode('utf-8').replace('"', '\\"'), table='users_ext' if is_locked_tb else sample_tb_name,
-                   accuracy=accuracy)
+                   accuracy=accuracy, sample_tb_name=sample_tb_name)
     say(update_query)
     cursor.execute(update_query)
     cursor.close()
+    return

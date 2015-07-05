@@ -78,9 +78,9 @@ def execute_check(limit):
     threads = []
 
     # Initialize connection to database #open('mysqlu.dat', 'r').read(),
-    first_conn = DatabaseFactory.init()
+    connection = DatabaseFactory.init()
     definitely_say('Testing MySql connection...')
-    cursor = DatabaseFactory.test_database(first_conn)
+    cursor = DatabaseFactory.test_database(connection)
     DatabaseFactory.check_database_consistency(cursor)
 
     sample_tb_name = raw_input("Please enter table/view name (where to get users from): ")
@@ -90,7 +90,7 @@ def execute_check(limit):
     definitely_say("Database seems to be working. Move on to getting list of users.")
 
     # populate list of users to memory
-    cursor = first_conn.cursor()
+    cursor = connection.cursor()
     is_locked_tb = raw_input("Should I update [users_ext] table instead of [" + str(sample_tb_name) + "]? [y/n]: ")
     is_locked_tb = True if is_locked_tb in ['yes', 'y'] else False
     definitely_say('Querying all names from the observations set.. This can take around 25-30 sec in LAN.')
@@ -118,7 +118,7 @@ def execute_check(limit):
             row = cursor.fetchone()
             continue
 
-        name, surname = StringUtil.split(fullname, na="space")
+        name, surname = StringUtil.split(fullname, na="encoded_space")
         country_code = LocationUtils.get_code(location)
 
         if name in names:
@@ -127,6 +127,8 @@ def execute_check(limit):
             else:
                 say("\tAdding a new fullname to already classified name. Move on")
                 names[name]['persons'].append(fullname)
+                DatabaseFactory.update_record_threaded(connection, (fullname, names[name]['accuracy'], names[name]['classification']),
+                                                       is_locked_tb, sample_tb_name)
         else:
             say("\tNew name. Lets start classification.")
             names[name] = {'persons': list(), 'classification': None, 'accuracy': None}
@@ -144,11 +146,15 @@ def execute_check(limit):
         row = cursor.fetchone()
 
     cursor.close()
-    definitely_say("Finished getting gender data, moving to database update...")
+    definitely_say("Finished getting gender data, waiting for processes to finish...")
 
     while (not all_finished(threads)):
         time.sleep(1.00)  # wait for all 4 threads to finish
 
-    DatabaseFactory.update_database(first_conn, names, is_locked_tb, sample_tb_name)
+    #DatabaseFactory.update_database(connection, names, is_locked_tb, sample_tb_name)
 
-    first_conn.close()
+    for t in DatabaseFactory.threads:
+        if t.isAlive():
+            t.join()
+
+    connection.close()

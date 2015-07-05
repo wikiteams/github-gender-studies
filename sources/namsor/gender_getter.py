@@ -1,5 +1,7 @@
 # coding=UTF-8
-from logger.scream import say, definitely_say, log_warning
+from logger.scream import say, definitely_say
+import database_factory as DatabaseFactory
+import string_utils as StringUtil
 import urllib3
 import time
 import json
@@ -17,8 +19,11 @@ MALE = 1
 FEMALE = 2
 
 
-def StripNonAlpha(s):  # API accepts non-latin characters, but numbers are usually unwanted, remove them
-    return "".join(c for c in s if c.isalpha())  # this means that transcripted-arabic won't be recognized
+def gender_object(gender):
+    if gender.lower() == 'female':
+        return FEMALE
+    else:
+        return MALE
 
 
 class GeneralGetter(threading.Thread):
@@ -72,7 +77,8 @@ class GeneralGetter(threading.Thread):
         while True:
             try:
                 self.adress = ur'http://api.namsor.com/onomastics/api/json/gendre/{name}/{surname}/{country_code}'.format(
-                              name=name, surname=surname, country_code=country_code if country_code is not None else "")
+                              name=StringUtil.StripNonAlpha(name, False), surname=StringUtil.StripNonAlpha(surname, True),
+                              country_code=country_code if country_code is not None else "")
                 self.r = self.http.request('GET', self.adress.encode('utf-8'))
                 self.network_attempts += 1
                 if self.r.status >= 300:
@@ -110,11 +116,10 @@ class GeneralGetter(threading.Thread):
         self.found_gender = self.result_json["gender"]
         self.found_accuracy = int(float(self.result_json["scale"]) * 100)
 
-        if self.found_gender.lower() == 'female':
-            names[name]['classification'] = FEMALE
-        else:
-            names[name]['classification'] = MALE
-
+        names[name]['classification'] = gender_object(self.found_gender)
         names[name]['accuracy'] = self.found_accuracy
+
+        DatabaseFactory.update_record_threaded(DatabaseFactory.connection,
+                                               (fullname, self.found_accuracy, gender_object(self.found_gender)))
 
         self.set_finished(True)

@@ -3,10 +3,13 @@ from logger import scream
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
     parser.add_argument("-s", "--silent", help="Disable all output? [True/False]", action="store_true")
     parser.add_argument("-v", "--verbose", help="Enable verbose messaging? [True/False]", action="store_true")
     parser.add_argument("-i", "--interactive", help="Use interactive mode? [True/False]", action="store_true")
     parser.add_argument("-limit", "--small_test_chunk", help="Limit records to 500? [True/False]", action="store_true")
+    parser.add_argument("-d", "--default", help="Lunch with defaults? [True/False]", action="store_true")
+
     args = parser.parse_args()
     if args.silent:
         scream.disable_all = True
@@ -14,7 +17,10 @@ if __name__ == "__main__":
         scream.intelliTag_verbose = True
         scream.say("verbosity turned on")
 
-    if args.interactive:
+    if args.default:
+        from sources.namsor import github_gender_finder
+        github_gender_finder.execute_check(False, ("users", "yes"))
+    elif args.interactive:
         print "Please select gender analyzer: "
         print "[1] - gender-api.com"
         print "[2] - genderchecker.com"

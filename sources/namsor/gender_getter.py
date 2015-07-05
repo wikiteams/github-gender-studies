@@ -68,13 +68,17 @@ class GeneralGetter(threading.Thread):
 
         name, surname, country_code = person_tuple
 
-        network_attempts = 0
+        self.network_attempts = 0
         while True:
             try:
                 self.adress = ur'http://api.namsor.com/onomastics/api/json/gendre/{name}/{surname}/{country_code}'.format(
-                              name=name, surname=surname, country_code=country_code)
+                              name=name, surname=surname, country_code=country_code if country_code is not None else "")
                 self.r = self.http.request('GET', self.adress.encode('utf-8'))
-                network_attempts += 1
+                self.network_attempts += 1
+                if self.r.status >= 300:
+                    say("Server response with HTTP code higher than or eq. 300, which means failure!")
+                    time.sleep(30)
+                    continue
                 if self.r.data is None:
                     say("No answer in HTTP response body!")
                     time.sleep(60)
@@ -85,7 +89,7 @@ class GeneralGetter(threading.Thread):
                     say(self.adress)
                     say(self.r.data)
                     time.sleep(60)
-                    if network_attempts < 10:
+                    if self.network_attempts < 10:
                         continue
                 break
             except urllib3.exceptions.ConnectionError:
@@ -104,7 +108,7 @@ class GeneralGetter(threading.Thread):
             return
 
         self.found_gender = self.result_json["gender"]
-        self.found_accuracy = self.result_json["accuracy"]
+        self.found_accuracy = int(float(self.result_json["scale"]) * 100)
 
         if self.found_gender.lower() == 'female':
             names[name]['classification'] = FEMALE

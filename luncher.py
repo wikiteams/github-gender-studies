@@ -6,6 +6,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--silent", help="Disable all output? [True/False]", action="store_true")
     parser.add_argument("-v", "--verbose", help="Enable verbose messaging? [True/False]", action="store_true")
     parser.add_argument("-i", "--interactive", help="Use interactive mode? [True/False]", action="store_true")
+    parser.add_argument("-limit", "--small_test_chunk", help="Limit records to 500? [True/False]", action="store_true")
     args = parser.parse_args()
     if args.silent:
         scream.disable_all = True
@@ -19,7 +20,7 @@ if __name__ == "__main__":
         print "[2] - genderchecker.com"
         print "[3] - NamSor Gender API"
 
-        var = raw_input("[1/2]: ")
+        var = raw_input("[1-3]: ")
 
         if (str(var) == '1'):
             from sources.gender_api import github_gender_finder
@@ -29,6 +30,6 @@ if __name__ == "__main__":
             github_gender_finder.execute_check()
         elif (str(var) == '3'):
             from sources.namsor import github_gender_finder
-            github_gender_finder.execute_check()
+            github_gender_finder.execute_check(True if args.small_test_chunk else False)
     else:
-        raise NotImplementedError  # "This functionality is not year ready"
+        raise NotImplementedError  # "Lunch interactive mode instead"

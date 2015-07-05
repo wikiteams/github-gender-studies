@@ -39,8 +39,9 @@ def check_database_consistency(cursor):
         sys.exit(0)
 
 
-def get_record_count(cursor, sample_tb_name):
-    cursor.execute(r'select count(distinct name) from ' + str(sample_tb_name) + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?")')
+def get_record_count(cursor, sample_tb_name, limit):
+    cursor.execute(r'select count(*) from ' + str(sample_tb_name)
+                   + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
     rows = cursor.fetchall()
     return rows[0][0]
 
@@ -53,7 +54,7 @@ def update_database(connection, names, is_locked_tb, sample_tb_name):
             update_query = r'UPDATE {table} SET gender = {gender} , accuracy = {accuracy} where full_name = "{fullname}"'.format(
                            gender=collection['classification'],
                            fullname=fullname.encode('utf-8').replace('"', '\\"'),
-                           table='users' if is_locked_tb else sample_tb_name,
+                           table='users_ext' if is_locked_tb else sample_tb_name,
                            accuracy=collection['accuracy'])
             say(update_query)
             cursor.execute(update_query)

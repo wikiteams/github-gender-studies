@@ -74,7 +74,7 @@ def num_working(threads):
     return are_working
 
 
-def execute_check():
+def execute_check(limit):
     threads = []
 
     # Initialize connection to database #open('mysqlu.dat', 'r').read(),
@@ -84,7 +84,7 @@ def execute_check():
     DatabaseFactory.check_database_consistency(cursor)
 
     sample_tb_name = raw_input("Please enter table/view name (where to get users from): ")
-    record_count = DatabaseFactory.get_record_count(cursor, sample_tb_name)
+    record_count = DatabaseFactory.get_record_count(cursor, sample_tb_name, limit)
     cursor.close()
 
     definitely_say("Database seems to be working. Move on to getting list of users.")
@@ -93,9 +93,10 @@ def execute_check():
     cursor = first_conn.cursor()
     is_locked_tb = raw_input("Should I update [users_ext] table instead of [" + str(sample_tb_name) + "]? [y/n]: ")
     is_locked_tb = True if is_locked_tb in ['yes', 'y'] else False
-    definitely_say('Querying all names from the observations set.. This can take around 25-30 sec.')
+    definitely_say('Querying all names from the observations set.. This can take around 25-30 sec in LAN.')
 
-    cursor.execute(r'select distinct name, location from ' + str(sample_tb_name) + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?")')
+    cursor.execute(r'select name, location from ' + str(sample_tb_name)
+                   + ' where (type = "USR") and (name rlike "[a-zA-Z]+( [a-zA-Z]+)?"){optional}'.format(optional=" limit 500" if limit else ""))
     # if you are interested in how this table was created, you will probably need to read our paper and contact us as well
     # because we have some more tables with aggregated data compared to standard GitHub Torrent collection
     row = cursor.fetchone()
@@ -144,6 +145,9 @@ def execute_check():
 
     cursor.close()
     definitely_say("Finished getting gender data, moving to database update...")
+
+    while (not all_finished(threads)):
+        time.sleep(1.00)  # wait for all 4 threads to finish
 
     DatabaseFactory.update_database(first_conn, names, is_locked_tb, sample_tb_name)
 
